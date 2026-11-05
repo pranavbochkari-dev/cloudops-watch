@@ -3,7 +3,6 @@ import unittest
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError, URLError
 
-from monitor import check_website
 
 
 class TestWebsiteMonitor(unittest.TestCase):

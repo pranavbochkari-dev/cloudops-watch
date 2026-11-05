@@ -1,4 +1,4 @@
-
+﻿
 import unittest
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError, URLError
@@ -13,7 +13,7 @@ class TestWebsiteMonitor(unittest.TestCase):
         response = MagicMock()
         response.getcode.return_value = 200
 
-        mock_urlopen.return_value.__enter__.return_value = response
+        mock_urlopen.return_value = response
 
         result = check_website("https://example.com")
 
@@ -43,3 +43,4 @@ class TestWebsiteMonitor(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

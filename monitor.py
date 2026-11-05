@@ -1,43 +1,55 @@
 
-import unittest
-from unittest.mock import patch, MagicMock
-from urllib.error import HTTPError, URLError
+import urllib.request
+import urllib.error
+import json
+import os
+import time
 
 
+def check_website(url, timeout=10):
+    start = time.time()
 
-class TestWebsiteMonitor(unittest.TestCase):
+    try:
+        response = urllib.request.urlopen(url, timeout=timeout)
+        status_code = response.getcode()
+        response.close()
 
-    @patch("monitor.urllib.request.urlopen")
-    def test_website_is_up(self, mock_urlopen):
-        response = MagicMock()
-        response.getcode.return_value = 200
-        mock_urlopen.return_value = response
+        return {
+            "url": url,
+            "is_up": True,
+            "status_code": status_code,
+            "response_time_ms": round((time.time() - start) * 1000, 2),
+            "error": None
+        }
 
-        result = check_website("https://example.com")
+    except Exception as error:
+        return {
+            "url": url,
+            "is_up": False,
+            "status_code": getattr(error, "code", None),
+            "response_time_ms": round((time.time() - start) * 1000, 2),
+            "error": str(error)
+        }
 
-        self.assertTrue(result["is_up"])
-        self.assertEqual(result["status_code"], 200)
 
-    @patch("monitor.urllib.request.urlopen")
-    def test_website_http_error(self, mock_urlopen):
-        mock_urlopen.side_effect = HTTPError(
-            "https://example.com", 500, "Server Error", {}, None
+def lambda_handler(event, context):
+    url = os.environ.get("TARGET_URL", "https://www.google.com")
+    sns_topic = os.environ.get("SNS_TOPIC_ARN")
+
+    result = check_website(url)
+    print(json.dumps(result))
+
+    if not result["is_up"] and sns_topic:
+        import boto3
+        sns = boto3.client("sns")
+        sns.publish(
+            TopicArn=sns_topic,
+            Subject="CloudOps Watch Alert",
+            Message=json.dumps(result, indent=2)
         )
 
-        result = check_website("https://example.com")
-
-        self.assertFalse(result["is_up"])
-        self.assertEqual(result["status_code"], 500)
-
-    @patch("monitor.urllib.request.urlopen")
-    def test_website_connection_error(self, mock_urlopen):
-        mock_urlopen.side_effect = URLError("Connection failed")
-
-        result = check_website("https://example.com")
-
-        self.assertFalse(result["is_up"])
-        self.assertIsNone(result["status_code"])
+    return result
 
 
 if __name__ == "__main__":
-    unittest.main()
+    print(json.dumps(check_website("https://www.google.com"), indent=2))

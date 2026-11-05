@@ -8,7 +8,7 @@ from monitor import check_website
 
 class TestWebsiteMonitor(unittest.TestCase):
 
-    @patch("monitor.urlopen")
+    @patch("monitor.urllib.request.urlopen")
     def test_website_is_up(self, mock_urlopen):
         response = MagicMock()
         response.status = 200
@@ -19,7 +19,7 @@ class TestWebsiteMonitor(unittest.TestCase):
         self.assertTrue(result["is_up"])
         self.assertEqual(result["status_code"], 200)
 
-    @patch("monitor.urlopen")
+    @patch("monitor.urllib.request.urlopen")
     def test_website_http_error(self, mock_urlopen):
         mock_urlopen.side_effect = HTTPError(
             "https://example.com", 500, "Server Error", {}, None
@@ -30,7 +30,7 @@ class TestWebsiteMonitor(unittest.TestCase):
         self.assertFalse(result["is_up"])
         self.assertEqual(result["status_code"], 500)
 
-    @patch("monitor.urlopen")
+    @patch("monitor.urllib.request.urlopen")
     def test_website_connection_error(self, mock_urlopen):
         mock_urlopen.side_effect = URLError("Connection failed")
 

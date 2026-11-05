@@ -1,67 +1,51 @@
 
+import urllib.request
+import urllib.error
 import json
 import os
 import time
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 
 def check_website(url, timeout=10):
-    """Check website availability and measure response time."""
-
-    start_time = time.perf_counter()
+    start = time.time()
 
     try:
-        request = Request(
-            url,
-            headers={"User-Agent": "CloudOpsWatch/1.0"}
-        )
+        response = urllib.request.urlopen(url, timeout=timeout)
+        status_code = response.getcode()
 
-        with urlopen(request, timeout=timeout) as response:
-            status_code = response.status
+        return {
+            "url": url,
+            "is_up": True,
+            "status_code": status_code,
+            "response_time_ms": round((time.time() - start) * 1000, 2),
+            "error": None
+        }
 
-        error = None
-
-    except HTTPError as exc:
-        status_code = exc.code
-        error = f"HTTP error: {exc.code}"
-
-    except (URLError, TimeoutError, OSError) as exc:
-        status_code = None
-        error = str(getattr(exc, "reason", exc))
-
-    response_time = round(
-        (time.perf_counter() - start_time) * 1000, 2
-    )
-
-    return {
-        "url": url,
-        "is_up": status_code is not None and 200 <= status_code < 400,
-        "status_code": status_code,
-        "response_time_ms": response_time,
-        "error": error
-    }
+    except Exception as error:
+        return {
+            "url": url,
+            "is_up": False,
+            "status_code": getattr(error, "code", None),
+            "response_time_ms": round((time.time() - start) * 1000, 2),
+            "error": str(error)
+        }
 
 
 def lambda_handler(event, context):
-    """AWS Lambda entry point."""
+    url = os.environ.get("TARGET_URL", "https://www.google.com")
+    sns_topic = os.environ.get("SNS_TOPIC_ARN")
 
-    url = os.environ["TARGET_URL"]
     result = check_website(url)
 
     print(json.dumps(result))
 
-    # Send an alert only when the website is down.
-    topic_arn = os.environ.get("SNS_TOPIC_ARN")
-
-    if not result["is_up"] and topic_arn:
+    if not result["is_up"] and sns_topic:
         import boto3
 
         sns = boto3.client("sns")
-
         sns.publish(
-            TopicArn=topic_arn,
-            Subject="CloudOps Watch: Website Down",
+            TopicArn=sns_topic,
+            Subject="CloudOps Watch Alert",
             Message=json.dumps(result, indent=2)
         )
 
@@ -69,5 +53,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    website = check_website("https://www.google.com")
-    print(json.dumps(website, indent=2))
+    print(json.dumps(
+        check_website("https://www.google.com"),
+        indent=2
+    ))

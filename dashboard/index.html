@@ -1,0 +1,682 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudOps Watch | Command Center</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg: #080c17;
+      --panel: #111827;
+      --panel2: #151e30;
+      --border: rgba(148,163,184,.13);
+      --text: #f1f5f9;
+      --muted: #8290a5;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --green: #4ade80;
+      --red: #fb7185;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at 75% 0%, rgba(37,99,235,.13), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 245px;
+      padding: 28px 18px;
+      background: rgba(12,18,32,.92);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 0 12px;
+      margin-bottom: 42px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg,#2563eb,#7c3aed);
+      box-shadow: 0 0 25px rgba(59,130,246,.3);
+    }
+
+    .logo h2 { font-size: 17px; letter-spacing: -.5px; }
+    .logo span { color: var(--blue); }
+
+    .nav-label {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      color: #65748b;
+      padding: 0 12px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 13px 14px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      color: #8c9bb1;
+      font-size: 13px;
+      cursor: pointer;
+      transition: .25s;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      background: rgba(59,130,246,.13);
+      color: #93c5fd;
+    }
+
+    .nav-item.active { border: 1px solid rgba(59,130,246,.15); }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 12px;
+    }
+
+    .sidebar-bottom p { font-size: 11px; color: var(--muted); margin-top: 7px; }
+
+    .main {
+      margin-left: 245px;
+      padding: 35px 42px;
+      width: calc(100% - 245px);
+      max-width: 1600px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 35px;
+      gap: 20px;
+    }
+
+    .topbar h1 { font-size: 25px; letter-spacing: -.8px; }
+    .topbar p { color: var(--muted); font-size: 12px; margin-top: 7px; }
+
+    .top-actions { display: flex; gap: 12px; align-items: center; }
+
+    .region {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 11px 14px;
+      border-radius: 9px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg,#2563eb,#9333ea);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .welcome {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 22px;
+      gap: 15px;
+    }
+
+    .welcome h2 { font-size: 17px; }
+    .welcome p { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+    .live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-size: 11px;
+      background: rgba(34,197,94,.08);
+      border: 1px solid rgba(34,197,94,.2);
+      padding: 9px 13px;
+      border-radius: 30px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      50% { opacity: .35; transform: scale(.8); }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 17px;
+      margin-bottom: 22px;
+    }
+
+    .card {
+      background: linear-gradient(145deg,#151e30,#101725);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 21px;
+      transition: transform .25s, border-color .25s;
+      animation: enter .65s ease both;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(96,165,250,.4);
+    }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-top { display: flex; justify-content: space-between; align-items: center; }
+
+    .card-label { color: var(--muted); font-size: 12px; }
+
+    .card-icon {
+      width: 37px;
+      height: 37px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: rgba(96,165,250,.12);
+      color: var(--blue);
+    }
+
+    .card h3 { font-size: 29px; margin-top: 17px; letter-spacing: -1px; }
+    .card-foot { font-size: 10px; color: var(--muted); margin-top: 9px; }
+    .positive { color: var(--green); }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.65fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: rgba(17,24,39,.92);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 23px;
+      min-width: 0;
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      gap: 12px;
+    }
+
+    .panel-heading h3 { font-size: 14px; }
+    .panel-heading p { color: var(--muted); font-size: 10px; margin-top: 6px; }
+
+    .select {
+      background: #1b2639;
+      color: #cbd5e1;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+    }
+
+    .chart-box { height: 245px; position: relative; }
+
+    .website {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .website:last-child { border-bottom: 0; }
+
+    .web-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+    .web-icon {
+      width: 35px;
+      height: 35px;
+      border-radius: 9px;
+      background: #1e293b;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      flex-shrink: 0;
+    }
+
+    .web-name { font-size: 12px; font-weight: 600; }
+    .web-url { color: var(--muted); font-size: 10px; margin-top: 5px; overflow-wrap: anywhere; }
+
+    .status {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 6px 9px;
+      border-radius: 20px;
+      color: var(--green);
+      background: rgba(34,197,94,.1);
+    }
+
+    .status.down {
+      color: var(--red);
+      background: rgba(251,113,133,.1);
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+    }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+
+    th {
+      color: #718096;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 12px 10px;
+    }
+
+    td {
+      padding: 14px 10px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .alert {
+      display: flex;
+      gap: 12px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .alert:last-child { border: 0; }
+
+    .alert-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: rgba(251,113,133,.1);
+      color: var(--red);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .alert strong { font-size: 11px; }
+    .alert p { font-size: 10px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 10px;
+      padding: 28px 0 5px;
+    }
+
+    @media(max-width:1100px) {
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .content-grid, .bottom-grid { grid-template-columns: 1fr; }
+    }
+
+    @media(max-width:700px) {
+      .sidebar { width: 65px; padding: 20px 8px; }
+      .logo { padding: 0; justify-content: center; }
+      .logo h2, .nav-label, .nav-item span, .sidebar-bottom { display: none; }
+      .nav-item { justify-content: center; padding: 13px 5px; }
+      .main { margin-left: 65px; width: calc(100% - 65px); padding: 24px 15px; }
+      .topbar h1 { font-size: 19px; }
+      .region { display: none; }
+      .stats { gap: 10px; }
+      .card { padding: 14px; }
+      .card h3 { font-size: 23px; }
+      .welcome { align-items: flex-start; flex-direction: column; }
+      .panel { padding: 16px; }
+      .chart-box { height: 210px; }
+      td, th { padding: 12px 6px; font-size: 9px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"><i data-lucide="cloud"></i></div>
+      <h2>CloudOps <span>Watch</span></h2>
+    </div>
+
+    <div class="nav-label">WORKSPACE</div>
+    <div class="nav-item active"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></div>
+    <div class="nav-item"><i data-lucide="globe"></i><span>Websites</span></div>
+    <div class="nav-item"><i data-lucide="activity"></i><span>Monitoring</span></div>
+    <div class="nav-item"><i data-lucide="bell"></i><span>Alerts</span></div>
+
+    <div class="nav-label" style="margin-top:30px">MANAGEMENT</div>
+    <div class="nav-item"><i data-lucide="chart-no-axes-combined"></i><span>Analytics</span></div>
+    <div class="nav-item"><i data-lucide="settings"></i><span>Settings</span></div>
+
+    <div class="sidebar-bottom">
+      <div style="font-size:12px;font-weight:600">AWS Infrastructure</div>
+      <p><i data-lucide="map-pin" style="width:12px;vertical-align:middle"></i> ap-south-1 · Mumbai</p>
+      <p>CloudOps Watch v1.0</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Command Center</h1>
+        <p>Monitor your infrastructure at a glance.</p>
+      </div>
+      <div class="top-actions">
+        <div class="region">☁ AWS Mumbai</div>
+        <div class="avatar">PB</div>
+      </div>
+    </div>
+
+    <div class="welcome">
+      <div>
+        <h2>Infrastructure Overview</h2>
+        <p>Here is what's happening with your monitored services.</p>
+      </div>
+      <div class="live"><span class="dot"></span> DEMO DATA</div>
+    </div>
+
+    <section class="stats">
+      <div class="card">
+        <div class="card-top">
+          <span class="card-label">Overall Uptime</span>
+          <div class="card-icon"><i data-lucide="activity"></i></div>
+        </div>
+        <h3 class="positive">99.98%</h3>
+        <div class="card-foot"><span class="positive">↑ 0.4%</span> &nbsp;Sample performance</div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-label">Avg Response Time</span>
+          <div class="card-icon"><i data-lucide="zap"></i></div>
+        </div>
+        <h3>245 ms</h3>
+        <div class="card-foot"><span class="positive">↓ 12 ms</span> &nbsp;Sample performance</div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-label">Total Checks</span>
+          <div class="card-icon"><i data-lucide="database"></i></div>
+        </div>
+        <h3>12,480</h3>
+        <div class="card-foot">Sample monitoring count</div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-label">Active Incidents</span>
+          <div class="card-icon"><i data-lucide="alert-triangle"></i></div>
+        </div>
+        <h3>02</h3>
+        <div class="card-foot">Sample incident count</div>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Response Time Analytics</h3>
+            <p>Sample website performance · milliseconds</p>
+          </div>
+          <select class="select" id="rangeSelect">
+            <option value="24">Last 24 hours</option>
+            <option value="7">Last 7 days</option>
+          </select>
+        </div>
+        <div class="chart-box">
+          <canvas id="responseChart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Monitored Websites</h3>
+            <p>Example service status</p>
+          </div>
+          <i data-lucide="external-link" style="color:#8290a5;width:16px"></i>
+        </div>
+
+        <div class="website">
+          <div class="web-left">
+            <div class="web-icon"><i data-lucide="globe"></i></div>
+            <div>
+              <div class="web-name">Google</div>
+              <div class="web-url">google.com</div>
+            </div>
+          </div>
+          <span class="status">OPERATIONAL</span>
+        </div>
+
+        <div class="website">
+          <div class="web-left">
+            <div class="web-icon"><i data-lucide="server"></i></div>
+            <div>
+              <div class="web-name">Application Server</div>
+              <div class="web-url">app.example.com</div>
+            </div>
+          </div>
+          <span class="status">OPERATIONAL</span>
+        </div>
+
+        <div class="website">
+          <div class="web-left">
+            <div class="web-icon"><i data-lucide="database"></i></div>
+            <div>
+              <div class="web-name">API Service</div>
+              <div class="web-url">api.example.com</div>
+            </div>
+          </div>
+          <span class="status down">DEGRADED</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-grid">
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Recent Monitoring Activity</h3>
+            <p>Illustrative monitoring events</p>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>SERVICE</th>
+                <th>STATUS</th>
+                <th>RESPONSE</th>
+                <th>TIME</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Google</td>
+                <td><span class="positive">● UP</span></td>
+                <td>180 ms</td>
+                <td>Just now</td>
+              </tr>
+              <tr>
+                <td>Application Server</td>
+                <td><span class="positive">● UP</span></td>
+                <td>245 ms</td>
+                <td>2 min ago</td>
+              </tr>
+              <tr>
+                <td>API Service</td>
+                <td style="color:#f87171">● DOWN</td>
+                <td>Timeout</td>
+                <td>5 min ago</td>
+              </tr>
+              <tr>
+                <td>Google</td>
+                <td><span class="positive">● UP</span></td>
+                <td>192 ms</td>
+                <td>8 min ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Recent Alerts</h3>
+            <p>Illustrative alert events</p>
+          </div>
+          <i data-lucide="bell" style="color:#8290a5"></i>
+        </div>
+
+        <div class="alert">
+          <div class="alert-icon"><i data-lucide="alert-circle"></i></div>
+          <div>
+            <strong>API Service Unavailable</strong>
+            <p>Connection timeout detected. Example alert.</p>
+          </div>
+        </div>
+
+        <div class="alert">
+          <div class="alert-icon"><i data-lucide="alert-triangle"></i></div>
+          <div>
+            <strong>High Response Time</strong>
+            <p>Response exceeded threshold. Example alert.</p>
+          </div>
+        </div>
+
+        <div class="alert">
+          <div style="color:#4ade80"><i data-lucide="check-circle"></i></div>
+          <div>
+            <strong style="font-size:11px">Monitoring System Ready</strong>
+            <p>Dashboard prototype loaded successfully.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      CloudOps Watch · Serverless Website Monitoring Platform · Built by Pranav Bochkari
+    </footer>
+  </main>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  const labels = [
+    "00:00","02:00","04:00","06:00","08:00","10:00",
+    "12:00","14:00","16:00","18:00","20:00","22:00"
+  ];
+
+  const chart = new Chart(
+    document.getElementById("responseChart"),
+    {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Response Time",
+          data: [210,180,245,220,290,230,250,190,215,270,230,245],
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(96,165,250,.12)",
+          fill: true,
+          tension: .4,
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: "#60a5fa"
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: "#8290a5", font: { size: 9 } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: "rgba(148,163,184,.09)" },
+            ticks: { color: "#8290a5", font: { size: 9 } }
+          }
+        }
+      }
+    }
+  );
+
+  document.getElementById("rangeSelect").addEventListener("change", function() {
+    if (this.value === "7") {
+      chart.data.labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+      chart.data.datasets[0].data = [220,245,210,280,230,195,245];
+    } else {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data =
+        [210,180,245,220,290,230,250,190,215,270,230,245];
+    }
+    chart.update();
+  });
+</script>
+</body>
+</html>

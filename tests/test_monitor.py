@@ -11,8 +11,8 @@ class TestWebsiteMonitor(unittest.TestCase):
     @patch("monitor.urllib.request.urlopen")
     def test_website_is_up(self, mock_urlopen):
         response = MagicMock()
-        response.status = 200
-        mock_urlopen.return_value.__enter__.return_value = response
+response.getcode.return_value = 200
+mock_urlopen.return_value.__enter__.return_value = response
 
         result = check_website("https://example.com")
 

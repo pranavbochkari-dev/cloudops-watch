@@ -12,6 +12,7 @@ class TestWebsiteMonitor(unittest.TestCase):
     def test_website_is_up(self, mock_urlopen):
         response = MagicMock()
         response.getcode.return_value = 200
+
         mock_urlopen.return_value.__enter__.return_value = response
 
         result = check_website("https://example.com")
